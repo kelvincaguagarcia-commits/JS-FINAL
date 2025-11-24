@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokeAPI - Estilo Masculino</title>
+<style>
+    /* Estilo general */
+    body {
+        margin: 0;
+        font-family: 'Arial', sans-serif;
+        background: #1a1a2e; /* azul oscuro */
+        color: #fff;
+    }
+
+    #menu {
+        display: flex;
+        background: #162447; 
+        padding: 10px 20px;
+        gap: 20px;
+    }
+    #menu a {
+        text-decoration: none;
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+    #menu a.active, #menu a:hover {
+        background: #1f4068;
+        font-weight: bold;
+    }
+
+    .content-wrapper {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+        background-color: #162447;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .poke-logo {
+        max-width: 300px;
+        margin-bottom: 20px;
+    }
+
+    .poke-search-box {
+        display: flex;
+        width: 100%;
+        max-width: 500px;
+        margin-bottom: 20px;
+    }
+
+    .poke-search-box input {
+        flex-grow: 1;
+        padding: 10px;
+        border-radius: 5px 0 0 5px;
+        border: none;
+        font-size: 16px;
+    }
+
+    .poke-search-box button {
+        background: #1f4068;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 0 5px 5px 0;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    #pokemon-card {
+        display: none;
+        width: 100%;
+        max-width: 700px;
+        background: #0f1626;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 20px;
+        flex-direction: row;
+        transition: all 0.4s ease;
+    }
+    #pokemon-card.show { display: flex; }
+
+    .poke-visual-left {
+        width: 45%;
+        padding: 20px;
+        text-align: center;
+        border-right: 1px solid #1f4068;
+    }
+
+    .poke-visual-left img {
+        width: 150px;
+        height: 150px;
+        object-fit: contain;
+        margin-bottom: 10px;
+    }
+
+    #pokemon-name {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .type-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        margin: 2px;
+        color: #fff;
+    }
+
+    .poke-info-right {
+        flex: 1;
+        padding: 20px;
+    }
+
+    .stats-header {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #1f4068;
+        padding-bottom: 5px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .stat-name {
+        width: 120px;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+
+    .stat-value {
+        width: 30px;
+        text-align: right;
+        margin-left: 5px;
+        font-weight: bold;
+    }
+
+    .stat-bar-bg {
+        flex-grow: 1;
+        height: 8px;
+        background: #1f4068;
+        border-radius: 4px;
+        margin: 0 10px;
+        overflow: hidden;
+    }
+
+    .stat-bar {
+        height: 100%;
+        transition: width 0.5s ease-out;
+    }
+
+    .poke-footer-data p {
+        margin: 5px 0;
+        font-size: 14px;
+    }
+
+    .error-msg {
+        display: none;
+        color: #ff6b6b;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+
+<div id="menu">
+    <a href="index.html">Juego</a>
+    <a href="pokeapi.html" class="active">PokeAPI</a>
+    <a href="animacion.html">Animación</a>
+</div>
+
+<div class="content-wrapper">
+    <img class="poke-logo" src="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg" alt="Logo">
+
+    <div class="poke-search-box">
+        <input id="poke-input" placeholder="Introduce nombre o ID">
+        <button id="search-btn">Buscar</button>
+    </div>
+
+    <p id="error-msg" class="error-msg">Pokémon no encontrado.</p>
+
+    <div id="pokemon-card"></div>
+</div>
+
+<script>
+const pokeInput = document.getElementById('poke-input');
+const searchBtn = document.getElementById('search-btn');
+const card = document.getElementById('pokemon-card');
+const errorMsg = document.getElementById('error-msg');
+
+const typeColors = {
+    grass: '#4CAF50', fire: '#FF4500', water: '#1E90FF',
+    poison: '#8A2BE2', electric: '#FFD700', bug: '#9ACD32',
+    normal: '#A8A878', flying: '#87CEEB', rock: '#B8A038',
+    ground: '#DEB887', psychic: '#FF1493', fighting: '#C03028',
+    ghost: '#4B0082', ice: '#00CED1', dragon: '#6A5ACD',
+    steel: '#708090', dark: '#2F4F4F', fairy: '#FF69B4'
+};
+
+const getTypeColor = type => typeColors[type] || '#555';
+
+const createStatsHTML = (stats, color) => `
+    <div>
+    ${stats.map(s => {
+        let name = s.stat.name.replace('special-attack','Sp. Attack').replace('special-defense','Sp. Defense');
+        const value = s.base_stat;
+        const width = Math.min(100, value);
+        return `<div class="stat-item">
+            <span class="stat-name">${name}:</span>
+            <div class="stat-bar-bg"><div class="stat-bar" style="width:${width}%;background:${color}"></div></div>
+            <span class="stat-value">${value}</span>
+        </div>`;
+    }).join('')}
+    </div>
+`;
+
+async function buscarPokemon() {
+    const query = pokeInput.value.toLowerCase().trim();
+    if (!query) return;
+    card.classList.remove('show');
+    errorMsg.style.display = 'none';
+    try {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${query}`);
+        if(!res.ok) throw new Error();
+        const data = await res.json();
+
+        const primaryType = data.types[0].type.name;
+        const color = getTypeColor(primaryType);
+
+        const typesHTML = data.types.map(t=>`<span class="type-badge" style="background:${getTypeColor(t.type.name)}">${t.type.name.toUpperCase()}</span>`).join(' ');
+
+        const sprite = data.sprites.other['official-artwork'].front_default || data.sprites.front_default;
+
+        const statsHTML = createStatsHTML(data.stats, color);
+
+        card.innerHTML = `
+            <div class="poke-visual-left">
+                <img src="${sprite}" alt="${data.name}">
+                <h3 id="pokemon-name">${data.name.toUpperCase()}</h3>
+                <p>ID: #${data.id}</p>
+            </div>
+            <div class="poke-info-right">
+                <h4 class="stats-header">Estadísticas Base</h4>
+                ${statsHTML}
+                <div class="poke-footer-data">
+                    <p>Tipos: <strong>${typesHTML}</strong></p>
+                    <p>Altura: <strong>${(data.height/10).toFixed(1)}m</strong></p>
+                    <p>Peso: <strong>${(data.weight/10).toFixed(1)}kg</strong></p>
+                </div>
+            </div>
+        `;
+        card.classList.add('show');
+    } catch {
+        errorMsg.textContent = `Pokémon "${query}" no encontrado.`;
+        errorMsg.style.display = 'block';
+    }
+}
+
+searchBtn.addEventListener('click', buscarPokemon);
+pokeInput.addEventListener('keypress', e => e.key === 'Enter' && buscarPokemon());
+</script>
+
+</body>
+</html>
