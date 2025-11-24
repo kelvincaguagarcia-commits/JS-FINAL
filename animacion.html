@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Animación de Partículas - Estilo Masculino</title>
+<style>
+/* Estilo general */
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: #1a1a2e; /* azul oscuro */
+    color: #fff;
+}
+
+#menu {
+    display: flex;
+    background: #162447; 
+    padding: 10px 20px;
+    gap: 20px;
+}
+#menu a {
+    text-decoration: none;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+#menu a.active, #menu a:hover {
+    background: #1f4068;
+    font-weight: bold;
+}
+
+.content-wrapper {
+    max-width: 980px; /* antes 900px */
+    min-height: 555px;  /* antes implícito */
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #162447;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Canvas de partículas */
+#particleCanvas {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: calc(100% - 40px);
+    height: calc(100% - 40px);
+    display: block;
+    z-index: 0;
+}
+
+/* Contenido encima del canvas */
+.particle-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+}
+h1 {
+    color: #00bfff;
+    margin-bottom: 20px;
+}
+p {
+    color: #cce0ff;
+    font-size: 16px;
+}
+</style>
+</head>
+<body>
+
+<div id="menu">
+    <a href="index.html">Juego</a>
+    <a href="pokeapi.html">PokeAPI</a>
+    <a href="animacion.html" class="active">Animación</a>
+</div>
+
+<div class="content-wrapper">
+    <canvas id="particleCanvas"></canvas>
+    <div class="particle-content">
+        <h1>Animación de Partículas</h1>
+        <p>Mueve el mouse sobre el área para generar partículas conectadas.</p>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let mouse = {x: 0, y: 0};
+const MAX_PARTICLES = 80;
+const FOLLOW_SPEED = 0.05;
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+
+function createParticle(x, y) {
+  return {
+    x: x + (Math.random() - 0.5) * 20,
+    y: y + (Math.random() - 0.5) * 20,
+    size: Math.random() * 2 + 1,
+    life: 1
+  };
+}
+
+function updateParticles() {
+  for(let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    
+    // Seguir al cursor
+    const dx = mouse.x - p.x;
+    const dy = mouse.y - p.y;
+    p.x += dx * FOLLOW_SPEED;
+    p.y += dy * FOLLOW_SPEED;
+    
+    // Reducir vida
+    p.life -= 0.008;
+    
+    if(p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+}
+
+function drawParticles() {
+  ctx.fillStyle = 'rgba(26,26,46,0.1)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Dibujar conexiones
+  ctx.strokeStyle = 'rgba(0,191,255,0.2)';
+  ctx.lineWidth = 0.5;
+  for(let i = 0; i < particles.length; i++) {
+    for(let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if(dist < 80) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+  
+  // Dibujar partículas
+  for(const p of particles) {
+    ctx.fillStyle = `rgba(0,191,255,${p.life})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function animate() {
+  updateParticles();
+  drawParticles();
+  requestAnimationFrame(animate);
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = e.clientX - rect.left;
+  mouse.y = e.clientY - rect.top;
+  
+  if(particles.length < MAX_PARTICLES) {
+    particles.push(createParticle(mouse.x, mouse.y));
+  }
+});
+
+animate();
+</script>
+
+</body>
+</html>
